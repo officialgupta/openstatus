@@ -16,6 +16,10 @@ import { toServiceCtx, toTRPCError } from "../service-adapter";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { periods } from "./utils";
 
+// a maintenance window is announced ahead of time: it can't start in the past
+const notInPast = (startDate: Date) => startDate.getTime() >= Date.now();
+const notInPastMessage = "A maintenance window can't start in the past.";
+
 export const maintenanceRouter = createTRPCRouter({
   createUpdate: protectedProcedure
     .meta({ track: Events.CreateMaintenanceUpdate })
@@ -133,6 +137,9 @@ export const maintenanceRouter = createTRPCRouter({
         endDate: z.coerce.date(),
         pageComponents: z.array(z.number()).optional(),
         notifySubscribers: z.boolean().nullish(),
+      }).refine((input) => notInPast(input.startDate), {
+        message: notInPastMessage,
+        path: ["startDate"],
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -168,6 +175,9 @@ export const maintenanceRouter = createTRPCRouter({
         startDate: z.coerce.date(),
         endDate: z.coerce.date(),
         pageComponents: z.array(z.number()).optional(),
+      }).refine((input) => notInPast(input.startDate), {
+        message: notInPastMessage,
+        path: ["startDate"],
       }),
     )
     .mutation(async ({ ctx, input }) => {
